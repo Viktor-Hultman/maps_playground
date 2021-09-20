@@ -1,16 +1,34 @@
 let mymap = L.map('mapid').setView([51.505, -0.09], 13);
 
-var marker = L.marker([51.5, -0.09]).addTo(mymap);
+let pin1 = L.marker();
+let pin2 = L.marker();
 
-marker.bindPopup("<b>Hello world!</b><br>I am a popup.").openPopup();
+// var marker = L.marker([51.5, -0.09]).addTo(mymap);
+
+// marker.bindPopup("<b>Hello world!</b><br>I am a popup.").openPopup();
+
+let firstMarker = L.marker();
 
 var popup = L.popup();
 
+
+
 function onMapClick(e) {
-    popup
+    if(pin1._latlng == undefined){
+        pin1 
         .setLatLng(e.latlng)
-        .setContent("You clicked the map at " + e.latlng.toString())
-        .openOn(mymap);
+        .addTo(mymap)
+        .bindPopup("<b>From:</b><br>" + e.latlng.toString())
+        .openPopup();
+    } else {
+        pin2
+        .setLatLng(e.latlng)
+        .addTo(mymap)
+        .bindPopup("<b>To:</b><br>" + e.latlng.toString())
+        .openPopup(); 
+    }
+        
+
 }
 
 mymap.on('click', onMapClick);
