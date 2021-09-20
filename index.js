@@ -1,43 +1,38 @@
-let mymap = L.map('mapid').setView([51.505, -0.09], 13);
+mapboxgl.accessToken = 'pk.eyJ1IjoidmlrdG9yaHVsdG1hbiIsImEiOiJja3RzZmIxcnkxZm84MnVtcHNlZm5oMnJvIn0.YoorBwfMIiBKtJ7kNaXn3Q';
 
-let pin1 = L.marker();
-let pin2 = L.marker();
+navigator.geolocation.getCurrentPosition(successLocation, errorLocation, {
+    enableHighAccuracy: true
+});
 
-// var marker = L.marker([51.5, -0.09]).addTo(mymap);
+function successLocation(position) {
+    console.log(position);
+    setupMap([position.coords.longitude, position.coords.latitude])
+}
 
-// marker.bindPopup("<b>Hello world!</b><br>I am a popup.").openPopup();
+function errorLocation() {
+    setupMap([18.060895062683944, 59.33081928392888])
+}
 
-let firstMarker = L.marker();
+function setupMap(center) {
+    var map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v11',
+        center: center,
+        zoom: 15
+    })
 
-var popup = L.popup();
+    //Adds the navigation controlls to the map in tje top right corner
+    const nav = new mapboxgl.NavigationControl();
+    map.addControl(nav);
 
-
-
-function onMapClick(e) {
-    if(pin1._latlng == undefined){
-        pin1 
-        .setLatLng(e.latlng)
-        .addTo(mymap)
-        .bindPopup("<b>From:</b><br>" + e.latlng.toString())
-        .openPopup();
-    } else {
-        pin2
-        .setLatLng(e.latlng)
-        .addTo(mymap)
-        .bindPopup("<b>To:</b><br>" + e.latlng.toString())
-        .openPopup(); 
-    }
-        
+    //Here is where the mapbox directions plugin is used to create the directions controlls
+    var directions = new MapboxDirections({
+        accessToken: 'pk.eyJ1IjoidmlrdG9yaHVsdG1hbiIsImEiOiJja3RzZmIxcnkxZm84MnVtcHNlZm5oMnJvIn0.YoorBwfMIiBKtJ7kNaXn3Q',
+        unit: 'metric',
+      });
+      
+      
+    map.addControl(directions, 'top-left');
 
 }
 
-mymap.on('click', onMapClick);
-
-L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
-    attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-    maxZoom: 18,
-    id: 'mapbox/streets-v11',
-    tileSize: 512,
-    zoomOffset: -1,
-    accessToken: 'pk.eyJ1IjoidmlrdG9yaHVsdG1hbiIsImEiOiJja3RzZmRscnYwcHdhMm9xZXk2c2JvOWxzIn0.sqReeYPmh7Bws47tZ9YNXA'
-}).addTo(mymap);
