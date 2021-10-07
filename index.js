@@ -1,3 +1,4 @@
+//Token for accessing the api
 mapboxgl.accessToken = 'pk.eyJ1IjoidmlrdG9yaHVsdG1hbiIsImEiOiJja3RzZmIxcnkxZm84MnVtcHNlZm5oMnJvIn0.YoorBwfMIiBKtJ7kNaXn3Q';
 
 const instructions = document.getElementById('instructions');
@@ -10,12 +11,14 @@ posbtn.addEventListener("click", function () {
     });
 })
 
+//If the user allow the program to use their location, the initial map centers on their location
 function successLocation(position) {
     console.log(position);
     startCoords = [position.coords.longitude, position.coords.latitude]
 
 }
 
+//If the user deny the use, the map centers on Central Stockholm
 function errorLocation() {
     startCoords = [18.060895062683944, 59.33081928392888]
 }
