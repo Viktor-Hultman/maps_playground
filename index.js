@@ -4,6 +4,8 @@ mapboxgl.accessToken = 'pk.eyJ1IjoidmlrdG9yaHVsdG1hbiIsImEiOiJja3RzZmIxcnkxZm84M
 const instructions = document.getElementById('instructions');
 const posbtn = document.getElementById('pos-button');
 const searchbtn = document.getElementById('search-button');
+const checkboxStart = document.getElementById('start')
+const checkboxEnd = document.getElementById('end')
 
 posbtn.addEventListener("click", function () {
     navigator.geolocation.getCurrentPosition(successLocation, errorLocation, {
@@ -11,22 +13,57 @@ posbtn.addEventListener("click", function () {
     });
 })
 
-//If the user allow the program to use their location, the initial map centers on their location
+//If the user allow the program to use their location, the start location will be set to their current location
 function successLocation(position) {
-    console.log(position);
     startCoords = [position.coords.longitude, position.coords.latitude]
-
+    checkboxStart.checked = true
+    console.log(startCoords)
 }
 
-//If the user deny the use, the map centers on Central Stockholm
 function errorLocation() {
-    startCoords = [18.060895062683944, 59.33081928392888]
+    return
 }
 
-let startCoords = []
-//These will be the coordinates used for the destination
-let endCoords = []
+//Function for calculating the center point of start and end coords
+function centerMap(startLong, startLat, endLong, endLat) {
+    let long = (startLong + endLong) / 2;
+    let lat = (startLat + endLat) / 2;
+    centerOfTrip = [long, lat]
+}
 
+//Function for calculating amount of zoom on the map depending on the trip duration
+function calcMapZoom(dist) {
+    if (dist < 5) {
+        mapZoom = 12
+    } else if (dist < 10) {
+        mapZoom = 11
+    } else if (dist < 15) {
+        mapZoom = 10
+    } else if (dist < 30) {
+        mapZoom = 9
+    } else if (dist < 50) {
+        mapZoom = 8.7
+    } else if (dist < 60) {
+        mapZoom = 8.5
+    }else if (dist < 70) {
+        mapZoom = 8.2
+    } else if (dist < 90) {
+        mapZoom = 8
+    } else if (dist < 150) {
+        mapZoom = 7
+    } else {
+        mapZoom = 6
+    }
+    console.log(tripDistance)
+    console.log(mapZoom)
+}
+//These will be the coordinates used for the trip start and end destination
+let startCoords = []
+let endCoords = []
+let centerOfTrip = []
+let tripDuration
+let tripDistance
+let mapZoom = 12
 
 const map = new mapboxgl.Map({
     container: 'map',
@@ -60,18 +97,32 @@ document.getElementById('geocoder1').appendChild(geocoder1.onAdd(map));
 document.getElementById('geocoder2').appendChild(geocoder2.onAdd(map));
 
 
-// const start = [-122.662323, 45.523751];
-
-async function getRoute(end) {
-    // make a directions request using driving profile
-    // an arbitrary start will always be the same
-    // only the end or destination will change
+//This async function is for getting the route for the trip and then find the distance
+async function getTrip(end) {
     const query = await fetch(
         `https://api.mapbox.com/directions/v5/mapbox/driving/${startCoords[0]},${startCoords[1]};${end[0]},${end[1]}?steps=true&geometries=geojson&access_token=${mapboxgl.accessToken}`,
         { method: 'GET' }
     );
     const json = await query.json();
     const data = json.routes[0];
+
+    // tripDuration = Math.round(data.duration / 60)
+    tripDistance = Number((data.distance / 1000).toFixed(1))
+
+    calcMapZoom(tripDistance)
+
+}
+
+async function getRoute(end) {
+    //Using a fetch-request for the directions for the start and end coordinates 
+    const query = await fetch(
+        `https://api.mapbox.com/directions/v5/mapbox/driving/${startCoords[0]},${startCoords[1]};${end[0]},${end[1]}?steps=true&geometries=geojson&access_token=${mapboxgl.accessToken}`,
+        { method: 'GET' }
+    );
+
+    const json = await query.json();
+    const data = json.routes[0];
+    //The 2 consts below are used for being able to "draw" the route on the map
     const route = data.geometry.coordinates;
     const geojson = {
         type: 'Feature',
@@ -105,16 +156,19 @@ async function getRoute(end) {
             }
         });
     }
+
+    //Setting the duration and distanse of the trip to global variables
+    tripDuration = Math.round(data.duration / 60)
+    tripDistance = Number((data.distance / 1000).toFixed(1))
+
     //Adding the trip duration to the instructions div
-    instructions.innerHTML = `<p><strong>Trip duration: ${Math.floor(
-        data.duration / 60
+    instructions.innerHTML = `<p><strong>Trip duration: ${Math.round(
+        tripDuration
     )} min </strong></p>`;
 }
 
+//Code that runs when the map "loads in"
 map.on('load', () => {
-    // make an initial directions request that
-    // starts and ends at the same location
-    // getRoute(start);
     map.addSource('single-point', {
         'type': 'geojson',
         'data': {
@@ -138,16 +192,38 @@ map.on('load', () => {
     geocoder1.on('result', ({ result }) => {
         startCoords = result.center
         console.log(result.center);
+        checkboxStart.checked = true
     });
 
     //The searchfield result for the ending position
     geocoder2.on('result', ({ result }) => {
         endCoords = result.center
         console.log(result.center);
+        checkboxEnd.checked = true
+        getTrip(endCoords);
     });
 
 
-    searchbtn.addEventListener("click", function () {
+
+
+});
+
+//Large eventlistener that setup an "update" for the map with the route directions
+searchbtn.addEventListener("click", function () {
+    //The code only runs if the fields have been filled
+    if (checkboxStart.checked && checkboxEnd.checked) {
+
+
+        centerMap(startCoords[0], startCoords[1], endCoords[0], endCoords[1])
+
+        //Animation of the map to center it in the middle of the trip
+        map.flyTo({
+            center: centerOfTrip,
+            zoom: mapZoom,
+            bearing: 0
+        })
+
+        //Setup for the "start point"
         const start = {
             type: 'FeatureCollection',
             features: [
@@ -162,6 +238,7 @@ map.on('load', () => {
             ]
         };
 
+        //Setup for the "end point"
         const end = {
             type: 'FeatureCollection',
             features: [
@@ -205,7 +282,6 @@ map.on('load', () => {
             });
         }
 
-        console.log(endCoords)
         if (map.getLayer('end')) {
             map.getSource('end').setData(end);
         } else {
@@ -234,12 +310,11 @@ map.on('load', () => {
                 }
             });
         }
+
         getRoute(endCoords);
+        
         instructions.classList.remove("invisible");
-    });
+    }
 
 });
-    //Syntax for searching places and getting their pos
-    //https://api.mapbox.com/geocoding/v5/mapbox.places/Bergs%C3%A4ttrav%C3%A4gen12.json?worldview=cn&access_token=pk.eyJ1IjoidmlrdG9yaHVsdG1hbiIsImEiOiJja3RzZmIxcnkxZm84MnVtcHNlZm5oMnJvIn0.YoorBwfMIiBKtJ7kNaXn3Q
-
 
