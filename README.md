@@ -1,1 +1,1 @@
-This is a playground for the google maps api
+This will be a mock-up for a taxi app
